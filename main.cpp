@@ -8,7 +8,7 @@ class Suffix
 public:
     int ind; //store the Starting index of the suffix in the text
     int r1; //current rank of the suffix
-    int r2; //next rank used for tie-breaking in the k<1 iterations
+    int r2; //next rank used for tie-breaking in the (k<1) iterations
     Suffix()//constructor to just initialize all attributes to zeros
     {
         r1=0;//initialize first rank to 0
