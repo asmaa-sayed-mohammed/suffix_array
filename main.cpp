@@ -1,7 +1,5 @@
 #include <iostream>
 using namespace std;
-#include <iostream>
-using namespace std;
 
 class Suffix
 {
@@ -58,6 +56,38 @@ public:
         delete[] char_arr;
         delete[] arr;
     }
+    //compare between 2 suffixes to arrange the array
+    bool smaller(Suffix a, Suffix b)
+    {
+        if (a.r1 != b.r1)// arrange depending on r1
+            return a.r1 < b.r1;
+        //if a.r1 = b.r1 , arrange depending on r2
+        return a.r2 < b.r2;
+    }
+
+    // Function to sort an array of suffixes based on the pair (r1, r2)
+    void sort_suffixes(Suffix suffixes[])
+    {
+        // Outer loop: determines the number of passes for Bubble Sort
+        for (int i = 0; i < n - 1; i++)
+        {
+            // Inner loop: compares adjacent elements and swaps them if needed
+            for (int j = 0; j < n - i - 1; j++)
+            {
+                // If the current element is not smaller than the next element
+                // according to the 'smaller' function
+                if (!smaller(suffixes[j], suffixes[j + 1]))
+                {
+                    // Swap the two elements to maintain ascending order
+                    Suffix temp = suffixes[j];//make temp value to set the second suffix in it
+                    suffixes[j] = suffixes[j + 1]; // shift the first suffix to the second one
+                    suffixes[j + 1] = temp; //make the first suffix = the smaller one
+                }
+            }
+        }
+
+    }
+
 };
 
 
