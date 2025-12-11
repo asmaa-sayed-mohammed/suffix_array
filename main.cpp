@@ -85,8 +85,37 @@ public:
                 }
             }
         }
-
     }
+    void UpdateRanks(Suffix* suffixes, int n , int prefixLength) {
+        int currentRank = 1; // Initialize the rank counter for normal suffixes (start from 1 because '$' has rank 0)
+
+        int *newRanks = new int[n]; // Temporary array to store updated ranks for each suffix according to its original index
+
+        newRanks[suffixes[0].ind] = suffixes[0].r1; // Assign the first suffix its current rank (preserve '$' as 0 if present)
+
+        for (int i = 1; i < n; i++) { // Loop through suffixes starting from the second
+            // If the current suffix's pair (r1, r2) is different from the previous suffix, assign a new rank
+            if (suffixes[i].r1 != suffixes[i - 1].r1 || suffixes[i].r2 != suffixes[i - 1].r2) {
+                if (suffixes[i].r1 != 0) // Ignore '$' suffix which should remain rank 0
+                    currentRank++; // Increment the rank for a new unique suffix
+            }
+            // Store the new rank in the temporary array
+            // If this suffix is '$' → keep rank 0, otherwise assign currentRank
+            newRanks[suffixes[i].ind] = (suffixes[i].r1 == 0) ? 0 : currentRank;
+        }
+
+        for (int i = 0; i < n; i++) { // Update the suffixes array with new ranks
+            suffixes[i].r1 = newRanks[i]; // Update r1 to the new rank
+
+            // Update r2 for the next iteration
+            // r2 = rank of the suffix starting 'prefixLength' positions ahead, or -1 if out of bounds
+            suffixes[i].r2 = (i + prefixLength < n) ? suffixes[i + prefixLength].r1 : -1;
+        }
+
+        delete[] newRanks; // Free the temporary memory
+    }
+
+
 
 };
 
