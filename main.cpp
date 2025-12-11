@@ -1,8 +1,7 @@
 #include <iostream>
 using namespace std;
 
-class Suffix
-{
+class Suffix{
 public:
     int ind; //store the Starting index of the suffix in the text
     int r1; //current rank of the suffix
@@ -21,6 +20,7 @@ public:
     char* char_arr;//character array for the input text (as strings are forbidden)
     int n;//length of the text -> to be able to initialize any array
     Suffix* arr;//array of Suffix elements
+    Suffix* temp_arr; // Temporary array used for Merge Sort operations (O(n) space)
     SuffixArray(char* x)//constructor used to initializes text and suffix data
     {
         for(n=0; x[n]!='\0'; n++);//compute the text length manually to prevent any usage of any STLs libraries
@@ -29,6 +29,7 @@ public:
             char_arr[i]=x[i];
 
         arr=new Suffix[n];//allocate memory for suffix array
+        temp_arr=new Suffix[n]; // Allocate memory for the temporary merge array
 //first we should identify which ASCII characters exist in the input
         bool exists[256]={false};//boolean array for character presence in the input
         for(int i=0; i<n; i++)
@@ -65,28 +66,119 @@ public:
         return a.r2 < b.r2;
     }
 
+    //Comparison function to sort suffixes based ONLY on their starting index (ind)
+    bool smaller_by_ind(Suffix a, Suffix b)
+    {
+        // The sorting must be based on the original position in the text (ind)
+        return a.ind < b.ind;
+    }
+
+    // Merge Helper function for sorting by <r1, r2>
+    void merge_r1r2(Suffix arr[], Suffix temp[], int left, int mid, int right)
+    {
+        int i = left;  // Pointer for the left half
+        int j = mid;   // Pointer for the right half
+        int k = left;  // Pointer for the temporary array
+
+        // Merge the two halves into the temporary array, comparing using 'smaller'
+        while (i < mid && j <= right)
+        {
+            // Use the comparison (smaller) for the <r1, r2> pair
+            if (smaller(arr[i], arr[j]))
+                temp[k++] = arr[i++];
+            else
+                temp[k++] = arr[j++];
+        }
+
+        // Copy remaining elements from the left half
+        while (i < mid)
+            temp[k++] = arr[i++];
+
+        // Copy remaining elements from the right half
+        while (j <= right)
+            temp[k++] = arr[j++];
+
+        // Copy the sorted elements back to the original array
+        for (int idx = left; idx <= right; idx++)
+            arr[idx] = temp[idx];
+    }
+
+    // Recursive Merge Sort function for sorting by <r1, r2>
+    void merge_sort_r1r2(Suffix arr[], Suffix temp[], int left, int right)
+    {
+        if (left < right)
+        {
+            int mid = left + (right - left) / 2; // Calculate the midpoint
+
+            // Recursively sort the left and right halves
+            merge_sort_r1r2(arr, temp, left, mid);
+            merge_sort_r1r2(arr, temp, mid + 1, right);
+
+            // Merge the two sorted halves
+            merge_r1r2(arr, temp, left, mid + 1, right);
+        }
+    }
+
     // Function to sort an array of suffixes based on the pair (r1, r2)
     void sort_suffixes(Suffix suffixes[])
     {
-        // Outer loop: determines the number of passes for Bubble Sort
-        for (int i = 0; i < n - 1; i++)
+        // Calls Merge Sort function
+        merge_sort_r1r2(suffixes, temp_arr, 0, n - 1);
+    }
+
+    // Merge Helper function for sorting by 'ind'
+    void merge_ind(Suffix arr[], Suffix temp[], int left, int mid, int right)
+    {
+        int i = left;
+        int j = mid;
+        int k = left;
+
+        // Merge the two halves using 'smaller_by_ind'
+        while (i < mid && j <= right)
         {
-            // Inner loop: compares adjacent elements and swaps them if needed
-            for (int j = 0; j < n - i - 1; j++)
-            {
-                // If the current element is not smaller than the next element
-                // according to the 'smaller' function
-                if (!smaller(suffixes[j], suffixes[j + 1]))
-                {
-                    // Swap the two elements to maintain ascending order
-                    Suffix temp = suffixes[j];//make temp value to set the second suffix in it
-                    suffixes[j] = suffixes[j + 1]; // shift the first suffix to the second one
-                    suffixes[j + 1] = temp; //make the first suffix = the smaller one
-                }
-            }
+            // Use the comparison (smaller_by_ind) for the index
+            if (smaller_by_ind(arr[i], arr[j]))
+                temp[k++] = arr[i++];
+            else
+                temp[k++] = arr[j++];
+        }
+
+        // Copy remaining elements
+        while (i < mid)
+            temp[k++] = arr[i++];
+
+        while (j <= right)
+            temp[k++] = arr[j++];
+
+        // Copy the sorted elements back
+        for (int idx = left; idx <= right; idx++)
+            arr[idx] = temp[idx];
+    }
+
+    // Recursive Merge Sort function for sorting by 'ind'
+    void merge_sort_ind(Suffix arr[], Suffix temp[], int left, int right)
+    {
+        if (left < right)
+        {
+            int mid = left + (right - left) / 2;
+
+            merge_sort_ind(arr, temp, left, mid);
+            merge_sort_ind(arr, temp, mid + 1, right);
+
+            // Merge the two sorted halves
+            merge_ind(arr, temp, left, mid + 1, right);
         }
     }
-    void UpdateRanks(Suffix* suffixes, int n , int prefixLength) {
+
+    //Function to sort the array of suffixes based on 'ind'
+    // This is necessary to prepare the array for the r2 calculation in the next step.
+    void sort_by_ind(Suffix suffixes[])
+    {
+        // Calls Merge Sort function
+        merge_sort_ind(suffixes, temp_arr, 0, n - 1);
+    }
+
+    void UpdateR1(Suffix* suffixes, int n , int prefixLength){
         int currentRank = 1; // Initialize the rank counter for normal suffixes (start from 1 because '$' has rank 0)
 
         int *newRanks = new int[n]; // Temporary array to store updated ranks for each suffix according to its original index
@@ -106,17 +198,31 @@ public:
 
         for (int i = 0; i < n; i++) { // Update the suffixes array with new ranks
             suffixes[i].r1 = newRanks[i]; // Update r1 to the new rank
-
-            // Update r2 for the next iteration
-            // r2 = rank of the suffix starting 'prefixLength' positions ahead, or -1 if out of bounds
-            suffixes[i].r2 = (i + prefixLength < n) ? suffixes[i + prefixLength].r1 : -1;
         }
 
         delete[] newRanks; // Free the temporary memory
     }
 
+    //Calculates and updates the next rank (r2) based on the shift
+    void UpdateR2(Suffix* suffixes, int n , int prefixLength)
+    {
+        for (int i = 0; i < n; i++)// Loop through the array, which is now sorted by 'ind' (suffixes[i].ind == i)
+        {
+            // Calculate the index of the suffix starting 'prefixLength' positions ahead (the required shift)
+            int next_suffix_index = i + prefixLength;
 
-
+            // Check if the shifted suffix index is within the text boundaries
+            if (next_suffix_index < n) {
+                // The r2 for the current suffix is the r1 rank of the suffix starting k positions ahead
+                suffixes[i].r2 = suffixes[next_suffix_index].r1;// Get the r1 of the shifted suffix
+            }
+            // If the shifted suffix is outside the text (i.e., we hit the '$' sentinel or beyond)
+            else {
+                // Assign -1 (or any value smaller than all valid ranks) to represent the string end.
+                suffixes[i].r2 = -1;
+            }
+        }
+    }
 };
 
 
